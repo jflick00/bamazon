@@ -38,49 +38,64 @@ function itemsForsale() {
   });
   
   //  Run displayMessages function
-  displayMessages();
+  setTimeout(askId, 1000);
 }
 
-function displayMessages(res) {
+function askId(val) {
 
   //  Prompt user to see what item they would like to purchase
   inquirer
     .prompt([
       {
-        name: "message1",
+        name: "idMessage",
         type: "input",
         message: "Please type in the id of the product you would like to purchase.",
-      }
-    ]).then(function(answer) {
-      var correct = false;
-      for (var i=0; i < res.length; i++) {
-        if(res[i].product_name == answer.message1) {
-          correct = true;
-          var product = answer.message1;
-          var id=i;
-          inquirer.prompt({
-            name: "message2",
-            type: "input",
-            message: "How many units would you like to purchase?",
-            validate: function(value) {
-              if(isNaN(value)==false) {
-                  return true;
-              } else {
-                  return false;
-              }
-            }
-          }).then(function(answer) {
-            if((res[id].stock_quantity-answer.message2) > 0) {
-              connection.query("UPDATE products SET stock_quantity='"+(res[id].stock_quantity-answer.message2+"' WHERE product_name='"+product+"'", function() {
-                console.log("Product Bought!");
-                itemsForsale();
-              }))
-            } else {
-                console.log("Not enough in stock, sorry!");
-                displayMessages(res);
-            }
-          })
+        validate: function(val) {
+          return !isNaN(val);
         }
+      }
+    ]).then(function(inventory) {
+      //  Storing the ID user chooses into a variable
+      var userInput = parseInt(val.idMessage);
+      //  Creating for-loop to see if the ID user chose matches any in the inventory
+      for (var i = 0; i < inventory.length; i++) {
+        if (inventory[i].item_id === userInput) {
+          return inventory[i];
+          askQuantity(product);
+        }
+      }
+      // Otherwise return null
+      console.log("Sorry, we do not currently supply that item.")
+      return null;
+    })
+}
+
+function askQuantity(product) {
+  inquirer
+    .prompt([
+      {
+        name: "quantityMessage",
+        type: "input",
+        message: "How many units of this product would you like to purchase?",
+        validate: function(val) {
+          return val > 0;
+        }
+
+      }
+    ]).then(function() {
+      //  If user enters in a higher number than how many are available in stock
+      if (quantityMessage > product.stock_quantity) {
+        console.log("Insufficient quantity!");
+        askId();
+      }
+      else {
+        //  Make the purchase and update the inventory
+        connection.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?",
+        [quantityMessage, product.item_id],
+        function(err, res) {
+          console.log("Successfully purchased " + quantityMessage + " " + product.product_name + "'s!");
+          askId();
+        })
       }
     })
 }
