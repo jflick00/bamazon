@@ -19,6 +19,7 @@
   "dependencies": {
     "dotenv": "^6.0.0",
     "inquirer": "^6.0.0",
-    "mysql": "^2.15.0"
+    "mysql": "^2.15.0",
+    "mysql2": "^1.5.3"
   }
 }
